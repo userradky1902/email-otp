@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KeyForge - Advanced Credential Generator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #FDFDFD 0%, #FFF0ED 50%, #FFF0ED 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #2d3748;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.1"><circle cx="30" cy="30" r="2"/></g></svg>') repeat;
+      z-index: -1;
+    }
+
+    .main-wrapper {
+      max-width: 650px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.3);
+      overflow: hidden;
+      animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .app-header {
+      background: linear-gradient(135deg, #FF6B6B, #FF8E72);
+      color: white;
+      padding: 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-header::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: rotate 20s linear infinite;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .app-header h1 {
+      font-size: 2.5em;
+      font-weight: 700;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .app-header p {
+      font-size: 1.1em;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+    }
+
+    .workflow-tracker {
+      padding: 0 40px;
+      background: white;
+    }
+
+    .workflow-indicators {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      position: relative;
+    }
+
+    .workflow-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #e2e8f0;
+      z-index: 1;
+    }
+
+    .workflow-line-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #FF6B6B, #FF8E72);
+      width: 33.33%;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 2px;
+    }
+
+    .workflow-indicator {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: #64748b;
+      position: relative;
+      z-index: 2;
+      transition: all 0.3s ease;
+    }
+
+    .workflow-indicator.current {
+      background: linear-gradient(135deg, #FF6B6B, #FF8E72);
+      color: white;
+      transform: scale(1.1);
+    }
+
+    .workflow-indicator.finished {
+      background: #10b981;
+      color: white;
+    }
+
+    .main-content {
+      padding: 40px;
+    }
+
+    .process-stage {
+      margin-bottom: 30px;
+      padding: 30px;
+      border: 2px solid transparent;
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: linear-gradient(white, white) padding-box,
+                  linear-gradient(135deg, #FF6B6B, #FF8E72) border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .process-stage::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 107, 107, 0.03), rgba(255, 142, 114, 0.03));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .process-stage.current {
+      border-color: #FF6B6B;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(255, 107, 107, 0.15);
+    }
+
+    .process-stage.current::before {
+      opacity: 1;
+    }
+
+    .stage-header {
+      font-size: 1.4em;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stage-symbol {
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #FF6B6B, #FF8E72);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+      font-size: 1.2em;
+      box-shadow: 0 8px 16px rgba(255, 107, 107, 0.3);
+    }
+
+    .input-section {
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: 600;
+      color: #4a5568;
+      font-size: 1em;
+    }
+
+    input[type="email"], 
+    input[type="number"], 
+    input[type="text"] {
+      width: 100%;
+      padding: 16px 20px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+    }
+
+    input[type="email"]:focus, 
+    input[type="number"]:focus, 
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #FF6B6B;
+      box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .option-item:hover {
+      background: rgba(255, 107, 107, 0.05);
+      border-color: rgba(255, 107, 107, 0.2);
+    }
+
+    input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #FF6B6B;
+      cursor: pointer;
+    }
+
+    .option-item label {
+      margin: 0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(255, 107, 107, 0.05), rgba(255, 142, 114, 0.05));
+      border-radius: 16px;
+      border: 1px solid rgba(255, 107, 107, 0.1);
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FF6B6B, #FF8E72);
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 12px rgba(255, 107, 107, 0.4);
+    }
+
+    .slider-display {
+      background: linear-gradient(135deg, #FF6B6B, #FF8E72);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      min-width: 50px;
+      text-align: center;
+      font-size: 1em;
+      box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
+    }
+
+    button {
+      background: linear-gradient(135deg, #FF6B6B, #FF8E72);
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .notification {
+      margin-top: 20px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      font-weight: 500;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .notification.success {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      border: 2px solid #10b981;
+      color: #065f46;
+    }
+
+    .notification.error {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      border: 2px solid #ef4444;
+      color: #991b1b;
+    }
+
+    .notification.info {
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+      border: 2px solid #3b82f6;
+      color: #1e40af;
+    }
+
+    .credential-showcase {
+      background: linear-gradient(135deg, rgba(255, 107, 107, 0.05), rgba(255, 142, 114, 0.05));
+      border: 3px solid #FF6B6B;
+      border-radius: 20px;
+      padding: 32px;
+      margin-top: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .credential-showcase::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, #FF6B6B, #FF8E72);
+      border-radius: 20px;
+      z-index: -1;
+      animation: borderGlow 2s linear infinite;
+    }
+
+    @keyframes borderGlow {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    .credential-showcase > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .credential-output {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 1.6em;
+      font-weight: 700;
+      color: #2d3748;
+      word-break: break-all;
+      margin: 20px 0;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      letter-spacing: 1px;
+      border: 1px solid rgba(255, 107, 107, 0.2);
+    }
+
+    .clipboard-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      margin-top: 20px;
+      width: auto;
+      padding: 12px 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .clipboard-btn:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+    }
+
+    .invisible {
+      display: none;
+    }
+
+    .party-effects {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .particle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #FF6B6B;
+      animation: particle-fall 3s linear infinite;
+    }
+
+    .particle:nth-child(2n) { background: #FF8E72; }
+    .particle:nth-child(3n) { background: #10b981; }
+    .particle:nth-child(4n) { background: #3b82f6; }
+
+    @keyframes particle-fall {
+      0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-wrapper {
+        margin: 10px;
+        border-radius: 20px;
+      }
+      
+      .main-content, .workflow-tracker {
+        padding: 24px 20px;
+      }
+      
+      .app-header {
+        padding: 30px 20px;
+      }
+      
+      .app-header h1 {
+        font-size: 2em;
+      }
+      
+      .process-stage {
+        padding: 24px 20px;
+      }
+      
+      .stage-symbol {
+        width: 45px;
+        height: 45px;
+        margin-right: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-wrapper">
+    <div class="app-header">
+      <h1>🔑 KeyForge</h1>
+      <p>Professional Credential Generator with Identity Verification</p>
+    </div>
+    
+    <div class="workflow-tracker">
+      <div class="workflow-indicators">
+        <div class="workflow-line">
+          <div class="workflow-line-progress" id="workflowProgress"></div>
+        </div>
+        <div class="workflow-indicator current" id="indicator1">1</div>
+        <div class="workflow-indicator" id="indicator2">2</div>
+        <div class="workflow-indicator" id="indicator3">3</div>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <div class="process-stage current" id="stage1">
+        <div class="stage-header">
+          <div class="stage-symbol">⚙️</div>
+          Setup Credential Parameters
+        </div>
+        
+        <div class="input-section">
+          <label for="userEmail">📧 Email Address:</label>
+          <input type="email" id="userEmail" placeholder="Enter your email address" required>
+        </div>
+        
+        <div class="input-section">
+          <label for="credentialLength">📏 Credential Length:</label>
+          <div class="slider-container">
+            <input type="range" id="credentialLength" min="4" max="20" value="12">
+            <div class="slider-display" id="lengthDisplay">12</div>
+          </div>
+        </div>
+        
+        <div class="input-section">
+          <label>🎯 Character Types:</label>
+          <div class="option-list">
+            <div class="option-item">
+              <input type="checkbox" id="includeUppercase" checked>
+              <label for="includeUppercase">Uppercase Letters (A-Z)</label>
+            </div>
+            <div class="option-item">
+              <input type="checkbox" id="includeDigits" checked>
+              <label for="includeDigits">Numbers (0-9)</label>
+            </div>
+          </div>
+        </div>
+        
+        <button id="sendVerificationBtn">🚀 Send Verification Code</button>
+        <div id="stage1-notification"></div>
+      </div>
+      
+      <div class="process-stage invisible" id="stage2">
+        <div class="stage-header">
+          <div class="stage-symbol">🔐</div>
+          Verify Your Identity
+        </div>
+        
+        <div class="input-section">
+          <label for="verificationCode">🔢 Enter 6-digit Verification Code:</label>
+          <input type="text" id="verificationCode" placeholder="000000" maxlength="6">
+        </div>
+        
+        <button id="verifyCodeBtn">✅ Verify & Generate Credential</button>
+        <div id="stage2-notification"></div>
+      </div>
+      
+      <div class="process-stage invisible" id="stage3">
+        <div class="stage-header">
+          <div class="stage-symbol">🎉</div>
+          Your Secure Credential
+        </div>
+        
+        <div class="credential-showcase">
+          <div style="font-size: 1.3em; margin-bottom: 16px; color: #10b981; font-weight: 700;">🎊 Credential Generated Successfully!</div>
+          <div class="credential-output" id="finalCredential"></div>
+          <button class="clipboard-btn" id="copyCredentialBtn">
+            <span>📋</span>
+            <span>Copy to Clipboard</span>
+          </button>
+        </div>
+        
+        <button id="resetProcessBtn" style="background: linear-gradient(135deg, #6b7280, #4b5563); margin-top: 24px;">
+          🔄 Generate Another Credential
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="party-effects invisible" id="partyEffects"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <script>
+    window.onload = function () {
+      let currentUserEmail = '';
+      let verificationCode = null;
+
+      emailjs.init("4sFaryWrbRlO7Tnw9");
+
+      const lengthSlider = document.getElementById('credentialLength');
+      const lengthDisplay = document.getElementById('lengthDisplay');
+      const emailInput = document.getElementById('userEmail');
+      const codeInput = document.getElementById('verificationCode');
+      const finalCredential = document.getElementById('finalCredential');
+      const workflowProgress = document.getElementById('workflowProgress');
+
+      lengthSlider.addEventListener('input', () => {
+        lengthDisplay.textContent = lengthSlider.value;
+      });
+
+      document.getElementById('sendVerificationBtn').addEventListener('click', sendVerificationCode);
+      document.getElementById('verifyCodeBtn').addEventListener('click', verifyIdentity);
+      document.getElementById('copyCredentialBtn').addEventListener('click', copyToClipboard);
+      document.getElementById('resetProcessBtn').addEventListener('click', resetProcess);
+
+      function displayNotification(elementId, message, type = 'info') {
+        document.getElementById(elementId).innerHTML =
+          `<div class="notification ${type}">${message}</div>`;
+      }
+
+      function updateWorkflow(stage) {
+        const percentage = (stage / 3) * 100;
+        workflowProgress.style.width = percentage + '%';
+        
+        // Update workflow indicators
+        for (let i = 1; i <= 3; i++) {
+          const indicatorEl = document.getElementById(`indicator${i}`);
+          indicatorEl.classList.remove('current', 'finished');
+          if (i < stage) {
+            indicatorEl.classList.add('finished');
+          } else if (i === stage) {
+            indicatorEl.classList.add('current');
+          }
+        }
+      }
+
+      function displayStage(stageNumber) {
+        document.querySelectorAll('.process-stage').forEach(stage => {
+          stage.classList.add('invisible');
+          stage.classList.remove('current');
+        });
+        const targetStage = document.getElementById(`stage${stageNumber}`);
+        targetStage.classList.remove('invisible');
+        setTimeout(() => {
+          targetStage.classList.add('current');
+        }, 100);
+        updateWorkflow(stageNumber);
+      }
+
+      function createPartyEffects() {
+        const partyContainer = document.getElementById('partyEffects');
+        partyContainer.classList.remove('invisible');
+        
+        for (let i = 0; i < 50; i++) {
+          const particle = document.createElement('div');
+          particle.className = 'particle';
+          particle.style.left = Math.random() * 100 + '%';
+          particle.style.animationDelay = Math.random() * 3 + 's';
+          particle.style.animationDuration = (Math.random() * 2 + 2) + 's';
+          partyContainer.appendChild(particle);
+        }
+        
+        setTimeout(() => {
+          partyContainer.classList.add('invisible');
+          partyContainer.innerHTML = '';
+        }, 5000);
+      }
+
+      async function sendVerificationCode() {
+        const email = emailInput.value;
+        if (!email || !email.includes('@')) {
+          displayNotification('stage1-notification', '❌ Please enter a valid email address.', 'error');
+          return;
+        }
+
+        verificationCode = Math.floor(100000 + Math.random() * 900000);
+        const expiryTime = new Date(Date.now() + 15 * 60000).toLocaleString();
+
+        const templateParams = {
+          email: email,         
+          passcode: verificationCode,    
+          time: expiryTime       
+        };
+
+        try {
+          displayNotification('stage1-notification', '📤 Sending verification code...', 'info');
+          await emailjs.send("service_tadq8zo", "template_3t26mth", templateParams);
+          currentUserEmail = email;
+          displayNotification('stage1-notification', `✅ Verification code sent to ${email}`, 'success');
+          setTimeout(() => displayStage(2), 2000);
+        } catch (err) {
+          console.error("EmailJS Error:", err);
+          displayNotification('stage1-notification', '❌ Failed to send verification code. Please try again.', 'error');
+        }
+      }
+
+      function verifyIdentity() {
+        const enteredCode = codeInput.value;
+        if (enteredCode == verificationCode) {
+          displayNotification('stage2-notification', '✅ Code verified! Generating your secure credential...', 'success');
+          const length = parseInt(lengthSlider.value);
+          const includeUppercase = document.getElementById('includeUppercase').checked;
+          const includeDigits = document.getElementById('includeDigits').checked;
+
+          const lowercase = "abcdefghijklmnopqrstuvwxyz";
+          const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+          const numbers = "0123456789";
+          let chars = lowercase;
+          if (includeUppercase) chars += uppercase;
+          if (includeDigits) chars += numbers;
+
+          let credential = "";
+          for (let i = 0; i < length; i++) {
+            credential += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+
+          finalCredential.textContent = credential;
+          setTimeout(() => {
+            displayStage(3);
+            createPartyEffects();
+          }, 1500);
+        } else {
+          displayNotification('stage2-notification', '❌ Incorrect verification code. Please try again.', 'error');
+        }
+      }
+
+      async function copyToClipboard(e) {
+        const credential = finalCredential.textContent;
+        try {
+          await navigator.clipboard.writeText(credential);
+          const btn = e.target.closest('button');
+          const originalContent = btn.innerHTML;
+          btn.innerHTML = '<span>✅</span><span>Copied!</span>';
+          setTimeout(() => (btn.innerHTML = originalContent), 2000);
+        } catch {
+          alert('Credential copied to clipboard!');
+        }
+      }
+
+      function resetProcess() {
+        emailInput.value = '';
+        lengthSlider.value = '12';
+        lengthDisplay.textContent = '12';
+        document.getElementById('includeUppercase').checked = true;
+        document.getElementById('includeDigits').checked = true;
+        codeInput.value = '';
+        document.getElementById('stage1-notification').innerHTML = '';
+        document.getElementById('stage2-notification').innerHTML = '';
+        currentUserEmail = '';
+        verificationCode = null;
+        displayStage(1);
+      }
+    };
+  </script>
+</body>
+</html>
+
